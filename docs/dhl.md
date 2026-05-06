@@ -48,7 +48,7 @@ Verified fixture on 2026-05-06:
   "last_event": {
     "time": "DATE TIME, COUNTRY",
     "text": "The customs clearance process for import into the destination country/region has started. Please find more information here.",
-    "location": "India"
+    "location": "COUNTRY"
   }
 }
 ```

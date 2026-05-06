@@ -43,7 +43,7 @@ Example fixture verified on 2026-05-06:
   "carrier": "ups",
   "tracking_number": "TRACKING_NUMBER",
   "status": "delivered",
-  "status_text": "DATE Delivered",
+  "status_text": "Delivered",
   "terminal": true,
   "delivered": true,
   "last_event": {
