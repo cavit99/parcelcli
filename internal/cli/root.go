@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cavit99/parcelcli/internal/carriers/evri"
+	"github.com/cavit99/parcelcli/internal/carriers/royalmail"
 	"github.com/cavit99/parcelcli/internal/model"
 	"github.com/cavit99/parcelcli/internal/watch"
 	"github.com/spf13/cobra"
@@ -40,15 +41,20 @@ func trackCmd() *cobra.Command {
 		}
 		return printResult(res)
 	}}
-	cmd.Flags().StringVar(&carrier, "carrier", "evri", "carrier slug (currently: evri)")
+	cmd.Flags().StringVar(&carrier, "carrier", "evri", "carrier slug (currently: evri, royalmail)")
 	cmd.Flags().StringVar(&postcode, "postcode", "", "destination postcode when required")
 	return cmd
 }
 
 func detectCmd() *cobra.Command {
 	return &cobra.Command{Use: "detect TRACKING_NUMBER", Short: "Suggest possible carriers", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
-		out := map[string]any{"tracking_number": args[0], "candidates": []map[string]any{{"carrier": "evri", "confidence": "possible", "requires": []string{"postcode"}}}}
-		return printJSONOrText(out, fmt.Sprintf("Possible carrier: evri (requires postcode). Detection is intentionally conservative."))
+		number := strings.ToUpper(strings.ReplaceAll(args[0], " ", ""))
+		candidates := []map[string]any{{"carrier": "evri", "confidence": "possible", "requires": []string{"postcode"}}}
+		if looksRoyalMail(number) {
+			candidates = append([]map[string]any{{"carrier": "royalmail", "confidence": "likely", "requires": []string{}}}, candidates...)
+		}
+		out := map[string]any{"tracking_number": args[0], "candidates": candidates}
+		return printJSONOrText(out, fmt.Sprintf("Possible carriers: %s", carrierNames(candidates)))
 	}}
 }
 func doctorCmd() *cobra.Command {
@@ -57,8 +63,8 @@ func doctorCmd() *cobra.Command {
 		if chrome == "" {
 			chrome = "auto"
 		}
-		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome}}, "watch_state": watch.Path()}
-		return printJSONOrText(out, "parcelcli is ready. Evri uses headless Chrome and requires --postcode.")
+		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}}, "watch_state": watch.Path()}
+		return printJSONOrText(out, "parcelcli is ready. Evri and Royal Mail use headless Chrome; Evri requires --postcode.")
 	}}
 }
 
@@ -154,8 +160,10 @@ func runTrack(ctx context.Context, c, number, pc string) (*model.Result, error) 
 	switch c {
 	case "evri":
 		return evri.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
+	case "royalmail", "royal-mail", "rm":
+		return royalmail.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
 	default:
-		return nil, fmt.Errorf("unsupported carrier %q (currently implemented: evri)", c)
+		return nil, fmt.Errorf("unsupported carrier %q (currently implemented: evri, royalmail)", c)
 	}
 }
 func printResult(r *model.Result) error {
@@ -180,4 +188,30 @@ func printJSON(v any) error {
 	enc := json.NewEncoder(os.Stdout)
 	enc.SetIndent("", "  ")
 	return enc.Encode(v)
+}
+
+func looksRoyalMail(number string) bool {
+	if len(number) < 9 || len(number) > 27 {
+		return false
+	}
+	if len(number) == 13 && strings.HasSuffix(number, "GB") {
+		return true
+	}
+	digits := 0
+	for _, r := range number {
+		if r >= '0' && r <= '9' {
+			digits++
+		}
+	}
+	return digits >= 12 && digits == len(number)
+}
+
+func carrierNames(candidates []map[string]any) string {
+	var names []string
+	for _, c := range candidates {
+		if name, ok := c["carrier"].(string); ok {
+			names = append(names, name)
+		}
+	}
+	return strings.Join(names, ", ")
 }

@@ -2,7 +2,7 @@
 
 A small Go CLI for tracking parcels from the terminal, built for local assistants and agent workflows.
 
-`parcelcli` starts with **Evri** because Evri’s public tracking page is useful but hostile to plain HTTP: it uses browser-only frontend keys and WAF checks. The CLI drives a real headless Chrome session, extracts the rendered tracking state, and returns a stable JSON shape that agents can safely consume.
+`parcelcli` starts with **Evri** and **Royal Mail** because their public tracking pages are useful but hostile to plain HTTP. The CLI drives a real headless Chrome session, extracts the rendered tracking state, and returns a stable JSON shape that agents can safely consume.
 
 > Unofficial and unaffiliated. This project is not affiliated with, endorsed by, sponsored by, or connected to Evri or any courier. Carrier names are used descriptively only.
 
@@ -25,6 +25,7 @@ Requirements:
 
 ```sh
 parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE
+parcelcli track TRACKING_NUMBER --carrier royalmail
 ```
 
 Machine-readable output:
@@ -69,8 +70,8 @@ parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE [--json]
 
 Flags:
 
-- `--carrier evri` — carrier slug. Evri is currently implemented.
-- `--postcode` — required for Evri detail pages.
+- `--carrier evri|royalmail` — carrier slug.
+- `--postcode` — required for Evri detail pages; not required for Royal Mail by default.
 - `--timeout 35s` — total browser wait budget.
 - `--chrome PATH` — override Chrome path.
 - `--json` — stable JSON for agents/scripts.
@@ -141,7 +142,7 @@ Canonical statuses:
 
 Carrier adapters are intentionally isolated. Planned next carriers:
 
-1. Royal Mail / Parcelforce
+1. Parcelforce — Royal Mail research notes: [`docs/royalmail.md`](docs/royalmail.md)
 2. DPD UK
 3. DHL
 4. UPS
