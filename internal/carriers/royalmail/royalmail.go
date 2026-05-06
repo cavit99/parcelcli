@@ -5,12 +5,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/url"
-	"os/exec"
-	"runtime"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/cavit99/parcelcli/internal/browser"
 	"github.com/cavit99/parcelcli/internal/model"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
@@ -98,7 +97,7 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 		timeout = 45 * time.Second
 	}
 	if chromePath == "" {
-		chromePath = defaultChromePath()
+		chromePath = browser.DefaultChromePath()
 	}
 	allocOpts := append(chromedp.DefaultExecAllocatorOptions[:],
 		chromedp.ExecPath(chromePath),
@@ -192,18 +191,6 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 		return body, out, fmt.Errorf("royalmail page did not render tracking text before timeout")
 	}
 	return body, out, nil
-}
-
-func defaultChromePath() string {
-	if runtime.GOOS == "darwin" {
-		return "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-	}
-	for _, p := range []string{"google-chrome", "chromium", "chromium-browser"} {
-		if found, err := exec.LookPath(p); err == nil {
-			return found
-		}
-	}
-	return "google-chrome"
 }
 
 func isAPIURL(u string) bool {

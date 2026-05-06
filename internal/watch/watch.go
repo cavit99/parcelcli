@@ -12,9 +12,13 @@ import (
 )
 
 type Item struct {
-	ID, Carrier, TrackingNumber, Postcode, Label string `json:",omitempty"`
-	AddedAt                                      string `json:"added_at"`
-	LastHash                                     string `json:"last_hash,omitempty"`
+	ID             string `json:"id"`
+	Carrier        string `json:"carrier"`
+	TrackingNumber string `json:"tracking_number"`
+	Postcode       string `json:"postcode,omitempty"`
+	Label          string `json:"label,omitempty"`
+	AddedAt        string `json:"added_at"`
+	LastHash       string `json:"last_hash,omitempty"`
 }
 type State struct {
 	Items []Item `json:"items"`
@@ -38,13 +42,19 @@ func Load() (*State, error) {
 		return nil, err
 	}
 	var s State
-	return &s, json.Unmarshal(b, &s)
+	if err := json.Unmarshal(b, &s); err != nil {
+		return nil, err
+	}
+	return &s, nil
 }
 func Save(s *State) error {
 	if err := os.MkdirAll(ConfigDir(), 0700); err != nil {
 		return err
 	}
-	b, _ := json.MarshalIndent(s, "", "  ")
+	b, err := json.MarshalIndent(s, "", "  ")
+	if err != nil {
+		return err
+	}
 	return os.WriteFile(Path(), b, 0600)
 }
 func NewID(carrier, number string) string {

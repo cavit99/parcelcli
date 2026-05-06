@@ -161,28 +161,40 @@ func watchRunCmd() *cobra.Command {
 				st.Items[i].LastHash = h
 			}
 		}
-		_ = watch.Save(st)
+		if err := watch.Save(st); err != nil {
+			if jsonOut {
+				return err
+			}
+			fmt.Fprintf(os.Stderr, "warning: failed to save watch state: %v\n", err)
+		}
 		return printJSONOrText(map[string]any{"changes": changes}, fmt.Sprintf("%d change(s)", len(changes)))
 	}}
 	cmd.Flags().BoolVar(&all, "all", false, "emit unchanged watches too")
 	return cmd
 }
 
+type tracker interface {
+	Track(context.Context, model.TrackRequest) (*model.Result, error)
+}
+
+var trackers = map[string]tracker{
+	"evri":       evri.Tracker{},
+	"royalmail":  royalmail.Tracker{},
+	"royal-mail": royalmail.Tracker{},
+	"rm":         royalmail.Tracker{},
+	"ups":        ups.Tracker{},
+	"fedex":      fedex.Tracker{},
+	"fed-ex":     fedex.Tracker{},
+	"fdx":        fedex.Tracker{},
+	"dhl":        dhl.Tracker{},
+}
+
 func runTrack(ctx context.Context, c, number, pc string) (*model.Result, error) {
-	switch c {
-	case "evri":
-		return evri.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
-	case "royalmail", "royal-mail", "rm":
-		return royalmail.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
-	case "ups":
-		return ups.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
-	case "fedex", "fed-ex", "fdx":
-		return fedex.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
-	case "dhl":
-		return dhl.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
-	default:
+	tr, ok := trackers[c]
+	if !ok {
 		return nil, fmt.Errorf("unsupported carrier %q (currently implemented: evri, royalmail, ups, fedex, dhl)", c)
 	}
+	return tr.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
 }
 func printResult(r *model.Result) error {
 	if jsonOut {

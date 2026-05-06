@@ -45,7 +45,6 @@ type Result struct {
 	EstimatedDelivery string         `json:"estimated_delivery,omitempty"`
 	LastEvent         *Event         `json:"last_event,omitempty"`
 	Events            []Event        `json:"events,omitempty"`
-	Requires          []string       `json:"requires,omitempty"`
 	Source            Source         `json:"source"`
 	Raw               map[string]any `json:"raw,omitempty"`
 }
