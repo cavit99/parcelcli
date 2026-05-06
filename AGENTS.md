@@ -33,6 +33,12 @@ parcelcli track <tracking-number> --carrier dhl --json
 - `fedex` — headless Chrome / CDP against the public FedEx tracking page. No postcode by default.
 - `dhl` — headless Chrome / CDP against the public DHL tracking page. No postcode by default.
 
+## Platform notes
+
+- macOS default Chrome path is `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`.
+- Linux discovery checks `google-chrome`, `chromium`, then `chromium-browser` on PATH.
+- Headless Chrome/CDP does not normally need a display server, but minimal containers may need browser shared libraries, fonts, and CA certificates.
+
 ## Useful commands
 
 ```sh
@@ -49,6 +55,6 @@ parcelcli watch run --json
 ## Error handling
 
 - Missing postcode: ask for postcode when the chosen carrier requires it.
-- Chrome missing: tell the user Chrome is required or pass `--chrome`.
+- Chrome missing: tell the user Chrome/Chromium is required or pass `--chrome`. On Linux, `google-chrome`, `chromium`, or `chromium-browser` on PATH should work headlessly; no X11 desktop is normally required.
 - Timeout/WAF: retry once later; do not loop aggressively.
 - Unsupported carrier: explain current support and suggest adding an adapter.

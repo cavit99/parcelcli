@@ -38,8 +38,10 @@ make install
 
 Requirements:
 
-- Go 1.26+
-- Google Chrome for browser-backed carriers (`/Applications/Google Chrome.app/...` on macOS by default)
+- Go 1.26+ when building from source or using `go install`.
+- A Chrome-compatible browser for tracking: Google Chrome on macOS (`/Applications/Google Chrome.app/...` by default), or `google-chrome`, `chromium`, or `chromium-browser` on Linux.
+
+`parcelcli` runs Chrome through CDP in headless mode, so Linux servers do not normally need X11/a desktop session. Minimal containers may still need Chrome/Chromium plus common shared libraries, fonts, and CA certificates.
 
 ## Quick start
 
@@ -132,7 +134,7 @@ State lives locally:
 parcelcli doctor --json
 ```
 
-Reports carrier readiness and where watch state lives.
+Reports carrier readiness and where watch state lives. Run this first on new Linux/server installs to confirm Chrome/Chromium is discoverable.
 
 ## Carrier support
 
