@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/cavit99/parcelcli/internal/carriers/dhl"
 	"github.com/cavit99/parcelcli/internal/carriers/evri"
 	"github.com/cavit99/parcelcli/internal/carriers/fedex"
 	"github.com/cavit99/parcelcli/internal/carriers/royalmail"
@@ -43,7 +44,7 @@ func trackCmd() *cobra.Command {
 		}
 		return printResult(res)
 	}}
-	cmd.Flags().StringVar(&carrier, "carrier", "evri", "carrier slug (currently: evri, royalmail, ups, fedex)")
+	cmd.Flags().StringVar(&carrier, "carrier", "evri", "carrier slug (currently: evri, royalmail, ups, fedex, dhl)")
 	cmd.Flags().StringVar(&postcode, "postcode", "", "destination postcode when required")
 	return cmd
 }
@@ -61,6 +62,9 @@ func detectCmd() *cobra.Command {
 		if looksFedEx(number) {
 			candidates = append([]map[string]any{{"carrier": "fedex", "confidence": "possible", "requires": []string{}}}, candidates...)
 		}
+		if looksDHL(number) {
+			candidates = append([]map[string]any{{"carrier": "dhl", "confidence": "likely", "requires": []string{}}}, candidates...)
+		}
 		out := map[string]any{"tracking_number": args[0], "candidates": candidates}
 		return printJSONOrText(out, fmt.Sprintf("Possible carriers: %s", carrierNames(candidates)))
 	}}
@@ -71,8 +75,8 @@ func doctorCmd() *cobra.Command {
 		if chrome == "" {
 			chrome = "auto"
 		}
-		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "ups": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "fedex": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}}, "watch_state": watch.Path()}
-		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, and FedEx use headless Chrome; Evri requires --postcode.")
+		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "ups": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "fedex": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "dhl": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}}, "watch_state": watch.Path()}
+		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, FedEx, and DHL use headless Chrome; Evri requires --postcode.")
 	}}
 }
 
@@ -174,8 +178,10 @@ func runTrack(ctx context.Context, c, number, pc string) (*model.Result, error) 
 		return ups.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
 	case "fedex", "fed-ex", "fdx":
 		return fedex.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
+	case "dhl":
+		return dhl.Tracker{}.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
 	default:
-		return nil, fmt.Errorf("unsupported carrier %q (currently implemented: evri, royalmail, ups, fedex)", c)
+		return nil, fmt.Errorf("unsupported carrier %q (currently implemented: evri, royalmail, ups, fedex, dhl)", c)
 	}
 }
 func printResult(r *model.Result) error {
@@ -250,4 +256,19 @@ func looksFedEx(number string) bool {
 		}
 	}
 	return true
+}
+
+func looksDHL(number string) bool {
+	if len(number) == 13 && strings.HasSuffix(number, "DE") {
+		return true
+	}
+	if len(number) < 10 || len(number) > 39 {
+		return false
+	}
+	for _, r := range number {
+		if !((r >= '0' && r <= '9') || (r >= 'A' && r <= 'Z')) {
+			return false
+		}
+	}
+	return strings.Contains(number, "DHL")
 }
