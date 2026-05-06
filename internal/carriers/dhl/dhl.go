@@ -11,6 +11,7 @@ import (
 
 	"github.com/cavit99/parcelcli/internal/browser"
 	"github.com/cavit99/parcelcli/internal/model"
+	"github.com/cavit99/parcelcli/internal/textutil"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 )
@@ -56,6 +57,7 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 	defer cancelAlloc()
 	browserCtx, cancelBrowser := chromedp.NewContext(allocCtx)
 	defer cancelBrowser()
+	// DHL can spend extra time bouncing between global DHL and dhl.de tracking pages.
 	runCtx, cancelRun := context.WithTimeout(browserCtx, timeout+25*time.Second)
 	defer cancelRun()
 
@@ -124,7 +126,7 @@ func hasResultText(body, number string) bool {
 }
 
 func resultFromRendered(number, body string, observations []apiObservation) *model.Result {
-	lines := cleanLines(body)
+	lines := textutil.CleanLines(body)
 	statusText := firstStatus(lines)
 	last := latestEvent(lines)
 	destination := firstAfter(lines, "Destination country/region:")
@@ -140,16 +142,6 @@ func resultFromRendered(number, body string, observations []apiObservation) *mod
 		Source:    model.Source{Method: "browser", URL: baseURL + "?submit=1&tracking-id=" + url.QueryEscape(number), FetchedAt: time.Now().UTC().Format(time.RFC3339)},
 		Raw:       raw,
 	}
-}
-
-func cleanLines(s string) []string {
-	var out []string
-	for _, l := range strings.Split(s, "\n") {
-		if t := strings.TrimSpace(l); t != "" {
-			out = append(out, t)
-		}
-	}
-	return out
 }
 
 func firstAfter(lines []string, marker string) string {

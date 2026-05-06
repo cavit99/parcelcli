@@ -98,7 +98,7 @@ func watchAddCmd() *cobra.Command {
 		if err != nil {
 			return err
 		}
-		item := watch.Item{ID: watch.NewID(carrier, args[0]), Carrier: carrier, TrackingNumber: args[0], Postcode: strings.ToUpper(strings.ReplaceAll(postcode, " ", "")), Label: label, AddedAt: time.Now().UTC().Format(time.RFC3339)}
+		item := watch.Item{ID: watch.NewID(carrier, args[0]), Carrier: carrier, TrackingNumber: args[0], Postcode: postcode, Label: label, AddedAt: time.Now().UTC().Format(time.RFC3339)}
 		st.Items = append(st.Items, item)
 		if err := watch.Save(st); err != nil {
 			return err

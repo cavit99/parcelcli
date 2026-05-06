@@ -11,6 +11,7 @@ import (
 
 	"github.com/cavit99/parcelcli/internal/browser"
 	"github.com/cavit99/parcelcli/internal/model"
+	"github.com/cavit99/parcelcli/internal/textutil"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 )
@@ -112,6 +113,7 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 	defer cancelAlloc()
 	browserCtx, cancelBrowser := chromedp.NewContext(allocCtx)
 	defer cancelBrowser()
+	// Add a small CDP cleanup cushion beyond the caller's page-render wait budget.
 	runCtx, cancelRun := context.WithTimeout(browserCtx, timeout+15*time.Second)
 	defer cancelRun()
 
@@ -134,6 +136,8 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 				mu.Unlock()
 			}
 		case *network.EventLoadingFinished:
+			// Response bodies are fetched asynchronously because CDP only exposes them
+			// after loading finishes; runCtx cancellation bounds these goroutines.
 			mu.Lock()
 			idx, ok := interesting[e.RequestID]
 			mu.Unlock()
@@ -288,7 +292,7 @@ func resultFromRendered(number, body string, observations []apiObservation) *mod
 }
 
 func extractRenderedStatus(body, number string) string {
-	lines := cleanLines(body)
+	lines := textutil.CleanLines(body)
 	for _, l := range lines {
 		ll := strings.ToLower(l)
 		if strings.Contains(l, number) && (strings.Contains(ll, "sorry") || strings.Contains(ll, "delivered") || strings.Contains(ll, "status")) {
@@ -299,16 +303,6 @@ func extractRenderedStatus(body, number string) string {
 		}
 	}
 	return ""
-}
-
-func cleanLines(s string) []string {
-	var out []string
-	for _, l := range strings.Split(s, "\n") {
-		if t := strings.TrimSpace(l); t != "" {
-			out = append(out, t)
-		}
-	}
-	return out
 }
 
 func pieceText(p mailPiece) string {

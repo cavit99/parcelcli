@@ -10,6 +10,7 @@ import (
 
 	"github.com/cavit99/parcelcli/internal/browser"
 	"github.com/cavit99/parcelcli/internal/model"
+	"github.com/cavit99/parcelcli/internal/textutil"
 )
 
 var eventRE = regexp.MustCompile(`(?m)^\d{1,2}:\d{2}\s*-\s*[^\n]+`)
@@ -43,7 +44,7 @@ func (Tracker) Track(ctx context.Context, req model.TrackRequest) (*model.Result
 }
 
 func extract(body string) (status, sender, lastTime, lastEvent string) {
-	lines := cleanLines(body)
+	lines := textutil.CleanLines(body)
 	for i, l := range lines {
 		if strings.Contains(strings.ToLower(l), "update on your parcel") && i+1 < len(lines) {
 			status = lines[i+1]
@@ -64,7 +65,7 @@ func extract(body string) (status, sender, lastTime, lastEvent string) {
 	return
 }
 func extractEvents(body string) []model.Event {
-	lines := cleanLines(body)
+	lines := textutil.CleanLines(body)
 	var out []model.Event
 	for i, l := range lines {
 		if eventRE.MatchString(l) {
@@ -73,15 +74,6 @@ func extractEvents(body string) []model.Event {
 				text = lines[i+1]
 			}
 			out = append(out, model.Event{Time: l, Text: text})
-		}
-	}
-	return out
-}
-func cleanLines(s string) []string {
-	var out []string
-	for _, l := range strings.Split(s, "\n") {
-		if t := strings.TrimSpace(l); t != "" {
-			out = append(out, t)
 		}
 	}
 	return out
