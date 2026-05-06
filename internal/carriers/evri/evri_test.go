@@ -14,7 +14,7 @@ func TestClassifyDelayedBeforeOutForDeliveryPhrase(t *testing.T) {
 }
 
 func TestExtractEvriRenderedText(t *testing.T) {
-	body := "Your parcel from AMAZON\nUpdate on your parcel\nWe're sorry, your parcel has been delayed.\n10:58 - Tue May 05\nWe're sorry, your parcel has been delayed."
+	body := "Your parcel from AMAZON\nUpdate on your parcel\n10:58 - Tue May 05\nWe're sorry, your parcel has been delayed.\n10:58 - Tue May 05\nWe're sorry, your parcel has been delayed."
 	status, sender, lastTime, lastEvent := extract(body)
 	if sender != "Your parcel from AMAZON" {
 		t.Fatalf("sender = %q", sender)

@@ -47,6 +47,9 @@ func extract(body string) (status, sender, lastTime, lastEvent string) {
 	for i, l := range lines {
 		if strings.Contains(strings.ToLower(l), "update on your parcel") && i+1 < len(lines) {
 			status = lines[i+1]
+			if eventRE.MatchString(status) && i+2 < len(lines) {
+				status = lines[i+2]
+			}
 		}
 		if strings.HasPrefix(strings.ToLower(l), "your parcel from ") {
 			sender = l
