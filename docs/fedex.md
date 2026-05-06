@@ -27,7 +27,6 @@ https://www.fedex.com/wtrk/track/?trknbr=<TRACKING_NUMBER>&trkqual=...
 The browser flow obtains a public OAuth token and calls:
 
 ```txt
-https://api.fedex.com/auth/oauth/v2/token?...grant_type=client_credentials...
 https://api.fedex.com/track/v2/shipments
 ```
 
@@ -43,7 +42,7 @@ The adapter extracts:
 - destination after `TO`
 - observed FedEx auth/track API calls
 
-Example successful render observed for `TRACKING_NUMBER` on 2026-05-06:
+Example successful render:
 
 ```json
 {

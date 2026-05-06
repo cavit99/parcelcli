@@ -76,7 +76,7 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 			if isTrackAPIURL(u) {
 				mu.Lock()
 				if !seen[e.RequestID] {
-					observations = append(observations, apiObservation{Status: int(e.Response.Status), Method: methods[e.RequestID], URL: u})
+					observations = append(observations, apiObservation{Status: int(e.Response.Status), Method: methods[e.RequestID], URL: sanitizeObservationURL(u)})
 					seen[e.RequestID] = true
 				}
 				mu.Unlock()
@@ -152,6 +152,17 @@ func defaultChromePath() string {
 func isTrackAPIURL(u string) bool {
 	l := strings.ToLower(u)
 	return strings.Contains(l, "api.fedex.com/track/") || strings.Contains(l, "api.fedex.com/auth/oauth")
+}
+
+func sanitizeObservationURL(u string) string {
+	parsed, err := url.Parse(u)
+	if err != nil {
+		return u
+	}
+	if strings.Contains(strings.ToLower(parsed.Host+parsed.Path), "api.fedex.com/auth/oauth") {
+		parsed.RawQuery = ""
+	}
+	return parsed.String()
 }
 
 func hasDetailedResult(body, number string) bool {

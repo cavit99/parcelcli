@@ -1,19 +1,33 @@
 # parcelcli
 
-A small Go CLI for tracking parcels from the terminal, built for local assistants and agent workflows.
+A small Go CLI for tracking parcels from the terminal, built for local assistants, shell scripts, and agent workflows.
 
-`parcelcli` uses carrier-specific adapters to drive public tracking flows and return one stable JSON shape. Current browser-backed carriers: **Evri**, **Royal Mail**, **UPS**, **FedEx**, and **DHL**.
+`parcelcli` drives carrier public tracking flows and returns one stable JSON shape. Current browser-backed carriers: **Evri**, **Royal Mail**, **UPS**, **FedEx**, and **DHL**.
 
 > Unofficial and unaffiliated. This project is not affiliated with, endorsed by, sponsored by, or connected to any carrier. Carrier names are used descriptively only.
 
+## Features
+
+- Browser-backed tracking for public carrier sites that are hostile to plain HTTP.
+- Stable JSON output for agents and automation.
+- Conservative carrier detection.
+- Local watch state that only emits material changes.
+- No carrier credentials required for the supported public-page adapters.
+
 ## Install
+
+Go install:
+
+```sh
+go install github.com/cavit99/parcelcli/cmd/parcelcli@latest
+```
 
 From source:
 
 ```sh
-git clone git@github.com:cavit99/parcelcli.git
+git clone https://github.com/cavit99/parcelcli.git
 cd parcelcli
-go install ./cmd/parcelcli
+make install
 ```
 
 Requirements:
@@ -38,12 +52,11 @@ Example JSON shape:
   "carrier": "ups",
   "tracking_number": "TRACKING_NUMBER",
   "status": "delivered",
-  "status_text": "DATE Delivered",
+  "status_text": "Delivered",
   "terminal": true,
   "delivered": true,
   "delayed": false,
   "last_event": {
-    "time": "DATE",
     "text": "Delivered",
     "location": "CITY, REGION"
   },
@@ -73,7 +86,7 @@ Flags:
 
 - `--carrier evri|royalmail|ups|fedex|dhl` — carrier slug.
 - `--postcode` — required for Evri; not required for Royal Mail, UPS, FedEx, or DHL by default.
-- `--timeout 35s` — total browser wait budget.
+- `--timeout 35s` — browser wait budget.
 - `--chrome PATH` — override Chrome path.
 - `--json` — stable JSON for agents/scripts.
 
@@ -115,7 +128,17 @@ parcelcli doctor --json
 
 Reports carrier readiness and where watch state lives.
 
-## Carrier docs
+## Carrier support
+
+| Carrier | Slug | Method | Extra input |
+| --- | --- | --- | --- |
+| Evri | `evri` | Public page via Chrome/CDP | destination postcode required |
+| Royal Mail | `royalmail` | Public page via Chrome/CDP | none by default |
+| UPS | `ups` | Public page via Chrome/CDP | none by default |
+| FedEx | `fedex` | Public page via Chrome/CDP | none by default |
+| DHL | `dhl` | Public page via Chrome/CDP | none by default |
+
+Carrier notes:
 
 - [`docs/evri.md`](docs/evri.md)
 - [`docs/royalmail.md`](docs/royalmail.md)
@@ -151,6 +174,17 @@ Canonical statuses:
 - `exception`
 - `not_found`
 
+## Development
+
+```sh
+make fmt
+make test
+make vet
+make build
+```
+
+CI runs `gofmt` check, `go test ./...`, `go vet ./...`, and a build.
+
 ## Roadmap
 
 Carrier adapters are intentionally isolated. Planned next carriers:
@@ -161,10 +195,6 @@ Carrier adapters are intentionally isolated. Planned next carriers:
 
 Each carrier may use a different backend: official API, public browser tracking, or optional aggregator. The normalized output stays the same.
 
-## Development
+## License
 
-```sh
-go test ./...
-go vet ./...
-go build -o ./dist/parcelcli ./cmd/parcelcli
-```
+MIT. See [`LICENSE`](LICENSE).
