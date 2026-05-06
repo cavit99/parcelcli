@@ -8,13 +8,14 @@
 parcelcli track <tracking-number> --carrier evri --postcode <postcode> --json
 parcelcli track <tracking-number> --carrier royalmail --json
 parcelcli track <tracking-number> --carrier ups --json
+parcelcli track <tracking-number> --carrier fedex --json
 ```
 
 ## Rules for agents
 
 - Use `--json`; treat human-readable output as display-only.
 - For Evri, postcode is required. Ask the user if it is missing; do not infer from private memory unless the user clearly intends the usual home/office address.
-- For Royal Mail and UPS, no postcode is required by default. If a carrier asks for postcode later, return/ask for that explicitly; do not guess.
+- For Royal Mail, UPS, and FedEx, no postcode is required by default. If a carrier asks for postcode later, return/ask for that explicitly; do not guess.
 - Do not poll fast. Use 15–30 minute intervals for active delivery watches; longer for non-active parcels.
 - Notify only on material changes: status enum, latest event, ETA, courier/handover code, delivery, exception, or blocker.
 - Never expose raw carrier page dumps to chat. Summarize `status`, `status_text`, and `last_event`.
@@ -26,6 +27,7 @@ parcelcli track <tracking-number> --carrier ups --json
 - `evri` — headless Chrome / CDP against the public Evri tracking page. Requires `--postcode`.
 - `royalmail` — headless Chrome / CDP against the public Royal Mail tracking page. No postcode by default.
 - `ups` — headless Chrome / CDP against the public UPS tracking page. No postcode by default.
+- `fedex` — headless Chrome / CDP against the public FedEx tracking page. No postcode by default.
 
 ## Useful commands
 
@@ -35,6 +37,7 @@ parcelcli detect <tracking-number> --json
 parcelcli watch add <tracking-number> --carrier evri --postcode <postcode> --label "label"
 parcelcli watch add <tracking-number> --carrier royalmail --label "label"
 parcelcli watch add <tracking-number> --carrier ups --label "label"
+parcelcli watch add <tracking-number> --carrier fedex --label "label"
 parcelcli watch run --json
 ```
 

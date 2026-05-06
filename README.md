@@ -2,7 +2,7 @@
 
 A small Go CLI for tracking parcels from the terminal, built for local assistants and agent workflows.
 
-`parcelcli` uses carrier-specific adapters to drive public tracking flows and return one stable JSON shape. Current browser-backed carriers: **Evri**, **Royal Mail**, and **UPS**.
+`parcelcli` uses carrier-specific adapters to drive public tracking flows and return one stable JSON shape. Current browser-backed carriers: **Evri**, **Royal Mail**, **UPS**, and **FedEx**.
 
 > Unofficial and unaffiliated. This project is not affiliated with, endorsed by, sponsored by, or connected to any carrier. Carrier names are used descriptively only.
 
@@ -27,6 +27,7 @@ Requirements:
 parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE --json
 parcelcli track TRACKING_NUMBER --carrier royalmail --json
 parcelcli track TRACKING_NUMBER --carrier ups --json
+parcelcli track TRACKING_NUMBER --carrier fedex --json
 ```
 
 Example JSON shape:
@@ -63,12 +64,13 @@ Track one parcel.
 parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE [--json]
 parcelcli track TRACKING_NUMBER --carrier royalmail [--json]
 parcelcli track TRACKING_NUMBER --carrier ups [--json]
+parcelcli track TRACKING_NUMBER --carrier fedex [--json]
 ```
 
 Flags:
 
-- `--carrier evri|royalmail|ups` — carrier slug.
-- `--postcode` — required for Evri; not required for Royal Mail or UPS by default.
+- `--carrier evri|royalmail|ups|fedex` — carrier slug.
+- `--postcode` — required for Evri; not required for Royal Mail, UPS, or FedEx by default.
 - `--timeout 35s` — total browser wait budget.
 - `--chrome PATH` — override Chrome path.
 - `--json` — stable JSON for agents/scripts.
@@ -89,6 +91,7 @@ Local polling state for assistants.
 parcelcli watch add TRACKING_NUMBER --carrier evri --postcode POSTCODE --label "Amazon order"
 parcelcli watch add TRACKING_NUMBER --carrier royalmail --label "letter"
 parcelcli watch add TRACKING_NUMBER --carrier ups --label "UPS parcel"
+parcelcli watch add TRACKING_NUMBER --carrier fedex --label "FedEx parcel"
 parcelcli watch list --json
 parcelcli watch run --json
 parcelcli watch remove ID
@@ -114,6 +117,7 @@ Reports carrier readiness and where watch state lives.
 - [`docs/evri.md`](docs/evri.md)
 - [`docs/royalmail.md`](docs/royalmail.md)
 - [`docs/ups.md`](docs/ups.md)
+- [`docs/fedex.md`](docs/fedex.md)
 
 ## Agent contract
 
@@ -150,8 +154,7 @@ Carrier adapters are intentionally isolated. Planned next carriers:
 1. Parcelforce
 2. DPD UK
 3. DHL
-4. FedEx
-5. Yodel
+4. Yodel
 
 Each carrier may use a different backend: official API, public browser tracking, or optional aggregator. The normalized output stays the same.
 
