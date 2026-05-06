@@ -46,6 +46,7 @@ Requirements:
 ## Quick start
 
 ```sh
+parcelcli track TRACKING_NUMBER --carrier evri --json
 parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE --json
 parcelcli track TRACKING_NUMBER --carrier royalmail --json
 parcelcli track TRACKING_NUMBER --carrier ups --json
@@ -83,7 +84,7 @@ Example JSON shape:
 Track one parcel.
 
 ```sh
-parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE [--json]
+parcelcli track TRACKING_NUMBER --carrier evri [--postcode POSTCODE] [--json]
 parcelcli track TRACKING_NUMBER --carrier royalmail [--json]
 parcelcli track TRACKING_NUMBER --carrier ups [--json]
 parcelcli track TRACKING_NUMBER --carrier fedex [--json]
@@ -93,7 +94,7 @@ parcelcli track TRACKING_NUMBER --carrier dhl [--json]
 Flags:
 
 - `--carrier evri|royalmail|ups|fedex|dhl` — carrier slug.
-- `--postcode` — required for Evri; not required for Royal Mail, UPS, FedEx, or DHL by default.
+- `--postcode` — optional for Evri fuller/detail tracking; not required for Royal Mail, UPS, FedEx, or DHL by default.
 - `--timeout 35s` — browser wait budget.
 - `--chrome PATH` — override Chrome path.
 - `--json` — stable JSON for agents/scripts.
@@ -111,6 +112,7 @@ parcelcli detect TRACKING_NUMBER --json
 Local polling state for assistants.
 
 ```sh
+parcelcli watch add TRACKING_NUMBER --carrier evri --label "Amazon order"
 parcelcli watch add TRACKING_NUMBER --carrier evri --postcode POSTCODE --label "Amazon order"
 parcelcli watch add TRACKING_NUMBER --carrier royalmail --label "letter"
 parcelcli watch add TRACKING_NUMBER --carrier ups --label "UPS parcel"
@@ -140,7 +142,7 @@ Reports carrier readiness and where watch state lives. Run this first on new Lin
 
 | Carrier | Slug | Method | Extra input |
 | --- | --- | --- | --- |
-| Evri | `evri` | Public page via Chrome/CDP | destination postcode required |
+| Evri | `evri` | Public page via Chrome/CDP | postcode optional for fuller detail |
 | Royal Mail | `royalmail` | Public page via Chrome/CDP | none by default |
 | UPS | `ups` | Public page via Chrome/CDP | none by default |
 | FedEx | `fedex` | Public page via Chrome/CDP | none by default |
@@ -159,7 +161,7 @@ Carrier notes:
 The full agent contract is in [`AGENTS.md`](AGENTS.md). Short version:
 
 - Prefer `--json` for all agent calls.
-- Ask for postcode when Evri is missing it; do not guess.
+- For Evri, use rough tracking without postcode; ask only when address-specific detail is needed, and do not guess.
 - Poll politely: 15–30 minutes is fine for active parcels, slower otherwise.
 - Notify only on material changes.
 - Do not paste raw page text to users; summarize the normalized status.

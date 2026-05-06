@@ -7,6 +7,7 @@ This repo is the sole source of truth for parcel tracking behavior, supported ca
 ## Golden path
 
 ```sh
+parcelcli track <tracking-number> --carrier evri --json
 parcelcli track <tracking-number> --carrier evri --postcode <postcode> --json
 parcelcli track <tracking-number> --carrier royalmail --json
 parcelcli track <tracking-number> --carrier ups --json
@@ -17,7 +18,7 @@ parcelcli track <tracking-number> --carrier dhl --json
 ## Rules for agents
 
 - Use `--json`; treat human-readable output as display-only.
-- For Evri, postcode is required. Ask the user if it is missing; do not infer from private memory unless the user clearly intends the usual home/office address.
+- For Evri, postcode is optional: without it, use rough public tracking; with it, use fuller/detail tracking. Do not infer a postcode from private memory unless the user clearly asks for detailed home/office tracking.
 - For Royal Mail, UPS, FedEx, and DHL, no postcode is required by default. If a carrier asks for postcode later, return/ask for that explicitly; do not guess.
 - Do not poll fast. Use 15–30 minute intervals for active delivery watches; longer for non-active parcels.
 - Notify only on material changes: status enum, latest event, ETA, courier/handover code, delivery, exception, or blocker.
@@ -27,7 +28,7 @@ parcelcli track <tracking-number> --carrier dhl --json
 
 ## Current carrier support
 
-- `evri` — headless Chrome / CDP against the public Evri tracking page. Requires `--postcode`.
+- `evri` — headless Chrome / CDP against the public Evri tracking page. `--postcode` is optional for fuller/detail tracking.
 - `royalmail` — headless Chrome / CDP against the public Royal Mail tracking page. No postcode by default.
 - `ups` — headless Chrome / CDP against the public UPS tracking page. No postcode by default.
 - `fedex` — headless Chrome / CDP against the public FedEx tracking page. No postcode by default.
@@ -44,6 +45,7 @@ parcelcli track <tracking-number> --carrier dhl --json
 ```sh
 parcelcli doctor --json
 parcelcli detect <tracking-number> --json
+parcelcli watch add <tracking-number> --carrier evri --label "label"
 parcelcli watch add <tracking-number> --carrier evri --postcode <postcode> --label "label"
 parcelcli watch add <tracking-number> --carrier royalmail --label "label"
 parcelcli watch add <tracking-number> --carrier ups --label "label"
@@ -54,7 +56,7 @@ parcelcli watch run --json
 
 ## Error handling
 
-- Missing postcode: ask for postcode when the chosen carrier requires it.
+- Missing Evri postcode: continue with rough tracking unless the user asked for address-specific detail.
 - Chrome missing: tell the user Chrome/Chromium is required or pass `--chrome`. On Linux, `google-chrome`, `chromium`, or `chromium-browser` on PATH should work headlessly; no X11 desktop is normally required.
 - Timeout/WAF: retry once later; do not loop aggressively.
 - Unsupported carrier: explain current support and suggest adding an adapter.

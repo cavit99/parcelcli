@@ -5,13 +5,14 @@ Evri is supported through its public tracking page using headless Chrome / CDP.
 ## Inputs
 
 - Tracking number: Evri says public tracking accepts 16-character parcel tracking codes or 8-digit calling-card numbers.
-- Postcode: required for detailed parcel page tracking.
+- Postcode: optional; rough public tracking works without it, detailed parcel page tracking can include it.
 
 ## Method
 
 The adapter opens:
 
 ```txt
+https://www.evri.com/track/parcel/<tracking>/details
 https://www.evri.com/track/parcel/<tracking>/details?postcode=<POSTCODE>
 ```
 
@@ -35,4 +36,4 @@ Then it extracts:
 
 ## Privacy
 
-Postcode and tracking number stay local. Debug output should not be shared casually because it can contain parcel metadata.
+Tracking number stays local. Postcode is only sent to Evri when explicitly provided. Debug output should not be shared casually because it can contain parcel metadata.

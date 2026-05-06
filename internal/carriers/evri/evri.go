@@ -13,21 +13,21 @@ import (
 	"github.com/cavit99/parcelcli/internal/textutil"
 )
 
-var eventRE = regexp.MustCompile(`(?m)^\d{1,2}:\d{2}\s*-\s*[^\n]+`)
+var eventRE = regexp.MustCompile(`(?im)^\d{1,2}:\d{2}\s*-\s*[a-z][^\n]*`)
 
 type Tracker struct{}
 
 func (Tracker) Track(ctx context.Context, req model.TrackRequest) (*model.Result, error) {
 	postcode := strings.ToUpper(strings.ReplaceAll(req.Postcode, " ", ""))
-	if postcode == "" {
-		return nil, fmt.Errorf("evri requires --postcode")
+	u := fmt.Sprintf("https://www.evri.com/track/parcel/%s/details", url.PathEscape(req.TrackingNumber))
+	if postcode != "" {
+		u = fmt.Sprintf("%s?postcode=%s", u, url.QueryEscape(postcode))
 	}
-	u := fmt.Sprintf("https://www.evri.com/track/parcel/%s/details?postcode=%s", url.PathEscape(req.TrackingNumber), url.QueryEscape(postcode))
-	page, err := browser.FetchText(ctx, browser.Options{ChromePath: req.ChromePath, URL: u, Timeout: req.Timeout, Debug: req.Debug, WaitFor: []string{"Your parcel from", "Update on your parcel", "Barcode number", "delayed", "delivered"}})
+	page, err := browser.FetchText(ctx, browser.Options{ChromePath: req.ChromePath, URL: u, Timeout: req.Timeout, Debug: req.Debug, WaitFor: []string{"Your parcel from", "Update on your parcel", "Barcode number", "Out for delivery", "delayed", "delivered"}})
 	if err != nil {
 		return nil, err
 	}
-	statusText, sender, lastTime, lastEvent := extract(page.Body)
+	statusText, sender, lastTime, lastEvent, eta := extract(page.Body, req.TrackingNumber)
 	status, delivered, delayed := classify(statusText + "\n" + lastEvent + "\n" + page.Body)
 	events := extractEvents(page.Body)
 	var le *model.Event
@@ -37,23 +37,34 @@ func (Tracker) Track(ctx context.Context, req model.TrackRequest) (*model.Result
 	return &model.Result{
 		Carrier: "evri", TrackingNumber: req.TrackingNumber, Postcode: postcode,
 		Status: status, StatusText: statusText, Terminal: delivered || status == model.StatusReturned, Delivered: delivered, Delayed: delayed,
-		SenderLine: sender, LastEvent: le, Events: events,
+		SenderLine: sender, EstimatedDelivery: eta, LastEvent: le, Events: events,
 		Source: model.Source{Method: "browser", URL: u, FetchedAt: time.Now().UTC().Format(time.RFC3339)},
 		Raw:    map[string]any{"api_observations": page.APIObservations},
 	}, nil
 }
 
-func extract(body string) (status, sender, lastTime, lastEvent string) {
+func extract(body, trackingNumber string) (status, sender, lastTime, lastEvent, eta string) {
 	lines := textutil.CleanLines(body)
+	number := strings.ToUpper(strings.ReplaceAll(trackingNumber, " ", ""))
 	for i, l := range lines {
-		if strings.Contains(strings.ToLower(l), "update on your parcel") && i+1 < len(lines) {
+		lower := strings.ToLower(l)
+		if strings.Contains(lower, "update on your parcel") && i+1 < len(lines) {
 			status = lines[i+1]
 			if eventRE.MatchString(status) && i+2 < len(lines) {
 				status = lines[i+2]
 			}
 		}
-		if strings.HasPrefix(strings.ToLower(l), "your parcel from ") {
+		if strings.HasPrefix(lower, "your parcel from ") {
 			sender = l
+		}
+		if strings.ToUpper(strings.ReplaceAll(l, " ", "")) == number && status == "" && i+1 < len(lines) {
+			status = lines[i+1]
+		}
+		if strings.Contains(lower, "will deliver your parcel") && eta == "" {
+			eta = l
+		}
+		if lower == "delivery time" && i+1 < len(lines) && eta == "" {
+			eta = lines[i+1]
 		}
 		if eventRE.MatchString(l) && lastTime == "" {
 			lastTime = l

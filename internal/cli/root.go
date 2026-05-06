@@ -53,7 +53,7 @@ func trackCmd() *cobra.Command {
 func detectCmd() *cobra.Command {
 	return &cobra.Command{Use: "detect TRACKING_NUMBER", Short: "Suggest possible carriers", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		number := strings.ToUpper(strings.ReplaceAll(args[0], " ", ""))
-		candidates := []map[string]any{{"carrier": "evri", "confidence": "possible", "requires": []string{"postcode"}}}
+		candidates := []map[string]any{{"carrier": "evri", "confidence": "possible", "requires": []string{}}}
 		if looksRoyalMail(number) {
 			candidates = append([]map[string]any{{"carrier": "royalmail", "confidence": "likely", "requires": []string{}}}, candidates...)
 		}
@@ -76,8 +76,8 @@ func doctorCmd() *cobra.Command {
 		if chrome == "" {
 			chrome = "auto"
 		}
-		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "ups": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "fedex": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "dhl": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}}, "watch_state": watch.Path()}
-		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, FedEx, and DHL use headless Chrome; Evri requires --postcode.")
+		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}, "optional": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "ups": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "fedex": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "dhl": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}}, "watch_state": watch.Path()}
+		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, FedEx, and DHL use headless Chrome; Evri accepts optional --postcode for fuller detail.")
 	}}
 }
 
@@ -91,9 +91,6 @@ func watchAddCmd() *cobra.Command {
 	cmd := &cobra.Command{Use: "add TRACKING_NUMBER", Short: "Add a parcel watch", Args: cobra.ExactArgs(1), RunE: func(cmd *cobra.Command, args []string) error {
 		if carrier == "" {
 			carrier = "evri"
-		}
-		if postcode == "" && carrier == "evri" {
-			return fmt.Errorf("evri watches require --postcode")
 		}
 		st, err := watch.Load()
 		if err != nil {
