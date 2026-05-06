@@ -2,6 +2,8 @@
 
 `parcelcli` is a local, user-owned parcel tracking CLI. It is safe for agents to call for read-only tracking.
 
+This repo is the sole source of truth for parcel tracking behavior, supported carriers, examples, and agent instructions. Workspace `TOOLS.md` files should only point here, not duplicate carrier lists or command surfaces.
+
 ## Golden path
 
 ```sh
