@@ -2,9 +2,9 @@
 
 A small Go CLI for tracking parcels from the terminal, built for local assistants and agent workflows.
 
-`parcelcli` starts with **Evri** and **Royal Mail** because their public tracking pages are useful but hostile to plain HTTP. The CLI drives a real headless Chrome session, extracts the rendered tracking state, and returns a stable JSON shape that agents can safely consume.
+`parcelcli` uses carrier-specific adapters to drive public tracking flows and return one stable JSON shape. Current browser-backed carriers: **Evri**, **Royal Mail**, and **UPS**.
 
-> Unofficial and unaffiliated. This project is not affiliated with, endorsed by, sponsored by, or connected to Evri or any courier. Carrier names are used descriptively only.
+> Unofficial and unaffiliated. This project is not affiliated with, endorsed by, sponsored by, or connected to any carrier. Carrier names are used descriptively only.
 
 ## Install
 
@@ -19,41 +19,36 @@ go install ./cmd/parcelcli
 Requirements:
 
 - Go 1.24+
-- Google Chrome for Evri tracking (`/Applications/Google Chrome.app/...` on macOS by default)
+- Google Chrome for browser-backed carriers (`/Applications/Google Chrome.app/...` on macOS by default)
 
 ## Quick start
 
 ```sh
-parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE
-parcelcli track TRACKING_NUMBER --carrier royalmail
-```
-
-Machine-readable output:
-
-```sh
 parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE --json
+parcelcli track TRACKING_NUMBER --carrier royalmail --json
+parcelcli track TRACKING_NUMBER --carrier ups --json
 ```
 
 Example JSON shape:
 
 ```json
 {
-  "carrier": "evri",
+  "carrier": "ups",
   "tracking_number": "TRACKING_NUMBER",
-  "postcode": "POSTCODE",
-  "status": "delayed",
-  "status_text": "We're sorry, your parcel has been delayed...",
-  "terminal": false,
-  "delivered": false,
-  "delayed": true,
+  "status": "delivered",
+  "status_text": "DATE Delivered",
+  "terminal": true,
+  "delivered": true,
+  "delayed": false,
   "last_event": {
-    "time": "10:58 - Tue May 05",
-    "text": "We're sorry, your parcel has been delayed..."
+    "time": "DATE",
+    "text": "Delivered",
+    "location": "CITY, REGION"
   },
   "source": {
     "method": "browser",
-    "url": "https://www.evri.com/track/parcel/...",
-    "fetched_at": "2026-05-06T08:30:00Z"
+    "url": "https://www.ups.com/track?...",
+    "fetched_at": "2026-05-06T09:30:11Z"
   }
 }
 ```
@@ -66,22 +61,24 @@ Track one parcel.
 
 ```sh
 parcelcli track TRACKING_NUMBER --carrier evri --postcode POSTCODE [--json]
+parcelcli track TRACKING_NUMBER --carrier royalmail [--json]
+parcelcli track TRACKING_NUMBER --carrier ups [--json]
 ```
 
 Flags:
 
-- `--carrier evri|royalmail` — carrier slug.
-- `--postcode` — required for Evri detail pages; not required for Royal Mail by default.
+- `--carrier evri|royalmail|ups` — carrier slug.
+- `--postcode` — required for Evri; not required for Royal Mail or UPS by default.
 - `--timeout 35s` — total browser wait budget.
 - `--chrome PATH` — override Chrome path.
 - `--json` — stable JSON for agents/scripts.
 
 ### `detect`
 
-Conservative carrier detection. This is intentionally not magic yet because UK tracking formats overlap.
+Conservative carrier detection. Detection avoids overclaiming because formats overlap.
 
 ```sh
-parcelcli detect TRACKING_NUMBER
+parcelcli detect TRACKING_NUMBER --json
 ```
 
 ### `watch`
@@ -90,7 +87,9 @@ Local polling state for assistants.
 
 ```sh
 parcelcli watch add TRACKING_NUMBER --carrier evri --postcode POSTCODE --label "Amazon order"
-parcelcli watch list
+parcelcli watch add TRACKING_NUMBER --carrier royalmail --label "letter"
+parcelcli watch add TRACKING_NUMBER --carrier ups --label "UPS parcel"
+parcelcli watch list --json
 parcelcli watch run --json
 parcelcli watch remove ID
 ```
@@ -108,7 +107,13 @@ State lives locally:
 parcelcli doctor --json
 ```
 
-Reports local readiness and where watch state lives.
+Reports carrier readiness and where watch state lives.
+
+## Carrier docs
+
+- [`docs/evri.md`](docs/evri.md)
+- [`docs/royalmail.md`](docs/royalmail.md)
+- [`docs/ups.md`](docs/ups.md)
 
 ## Agent contract
 
@@ -142,12 +147,11 @@ Canonical statuses:
 
 Carrier adapters are intentionally isolated. Planned next carriers:
 
-1. Parcelforce — Royal Mail research notes: [`docs/royalmail.md`](docs/royalmail.md)
+1. Parcelforce
 2. DPD UK
 3. DHL
-4. UPS
-5. FedEx
-6. Yodel
+4. FedEx
+5. Yodel
 
 Each carrier may use a different backend: official API, public browser tracking, or optional aggregator. The normalized output stays the same.
 
@@ -158,7 +162,3 @@ go test ./...
 go vet ./...
 go build -o ./dist/parcelcli ./cmd/parcelcli
 ```
-
-## Why browser-backed Evri?
-
-Evri’s public tracking flow works in a real browser but blocks naïve HTTP clients. The page obtains frontend keys and calls protected platform APIs under browser/WAF context. `parcelcli` uses Chrome DevTools Protocol to load the public page, wait for rendered tracking text, capture relevant API observations, then normalize the result.
