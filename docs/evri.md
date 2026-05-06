@@ -1,6 +1,6 @@
 # Evri adapter
 
-Evri is the first supported carrier.
+Evri is supported through its public tracking page using headless Chrome / CDP.
 
 ## Inputs
 

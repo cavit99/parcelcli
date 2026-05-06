@@ -63,7 +63,7 @@ Example successful render observed for `TRACKING_NUMBER` on 2026-05-06:
 }
 ```
 
-FedEx public tracking can later return `not_found` for the same number if its public web flow says it cannot find the tracking number; the adapter reflects the current rendered carrier result rather than caching older state.
+FedEx public tracking is unusually flaky: the SPA can briefly render a false `not_found` or system-error state before redirecting into a qualified tracking page (`trkqual=...`). The adapter therefore prefers detailed tracking renders (`DELIVERY DETAILS` / visible scan events) and only accepts `not_found` after a grace window.
 
 ## Status mapping
 

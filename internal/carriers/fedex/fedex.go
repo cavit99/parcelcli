@@ -89,22 +89,42 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 	if err := chromedp.Run(runCtx,
 		network.Enable(),
 		chromedp.Navigate(u),
-		chromedp.Sleep(20*time.Second),
+		chromedp.Sleep(5*time.Second),
 	); err != nil {
 		return "", nil, err
 	}
 
 	deadline := time.Now().Add(timeout)
+	var notFoundBody string
+	notFoundSince := time.Time{}
 	for time.Now().Before(deadline) {
 		if err := chromedp.Run(runCtx, chromedp.Text("body", &body, chromedp.ByQuery)); err != nil {
 			return "", nil, err
 		}
-		if hasResultText(body, number) {
+		if hasDetailedResult(body, number) {
 			chromedp.Run(runCtx, chromedp.Sleep(2*time.Second))
+			if err := chromedp.Run(runCtx, chromedp.Text("body", &body, chromedp.ByQuery)); err != nil {
+				return "", nil, err
+			}
 			mu.Lock()
 			out := append([]apiObservation(nil), observations...)
 			mu.Unlock()
 			return body, out, nil
+		}
+		if hasNotFoundText(body, number) {
+			if notFoundSince.IsZero() {
+				notFoundSince = time.Now()
+				notFoundBody = body
+			}
+			// FedEx can briefly render false not-found/system-error states before
+			// redirecting into the qualified tracking page. Treat not_found as a
+			// fallback only after a grace window.
+			if time.Since(notFoundSince) > 25*time.Second {
+				mu.Lock()
+				out := append([]apiObservation(nil), observations...)
+				mu.Unlock()
+				return notFoundBody, out, nil
+			}
 		}
 		time.Sleep(1500 * time.Millisecond)
 	}
@@ -134,13 +154,17 @@ func isTrackAPIURL(u string) bool {
 	return strings.Contains(l, "api.fedex.com/track/") || strings.Contains(l, "api.fedex.com/auth/oauth")
 }
 
-func hasResultText(body, number string) bool {
+func hasDetailedResult(body, number string) bool {
 	if !strings.Contains(strings.ToUpper(body), number) {
 		return false
 	}
 	lines := cleanLines(body)
-	if firstAfter(lines, "DELIVERY DETAILS") != "" || latestEvent(lines) != nil {
-		return true
+	return firstAfter(lines, "DELIVERY DETAILS") != "" || latestEvent(lines) != nil
+}
+
+func hasNotFoundText(body, number string) bool {
+	if !strings.Contains(strings.ToUpper(body), number) {
+		return false
 	}
 	l := strings.ToLower(body)
 	return strings.Contains(l, "no record of this tracking") || strings.Contains(l, "unable to retrieve") || strings.Contains(l, "can’t find that tracking number") || strings.Contains(l, "can't find that tracking number")
