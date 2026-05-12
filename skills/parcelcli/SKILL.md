@@ -2,7 +2,7 @@
 name: parcelcli
 description: Track parcels locally with parcelcli for Evri, Royal Mail, UPS, FedEx, and DHL. Use when the user asks to track a package, detect a carrier, check delivery status, watch a parcel, or summarize courier tracking without sending tracking data to third-party aggregators.
 homepage: https://github.com/cavit99/parcelcli
-metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.2","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
+metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.3","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
 ---
 
 # parcelcli
@@ -15,6 +15,7 @@ Always use `--json` when calling `parcelcli`.
 
 ```sh
 parcelcli track <tracking-number> --carrier evri --postcode <postcode> --json
+parcelcli track <tracking-number> --carrier evri --json
 parcelcli track <tracking-number> --carrier royalmail --json
 parcelcli track <tracking-number> --carrier ups --json
 parcelcli track <tracking-number> --carrier fedex --json
@@ -31,7 +32,7 @@ If detection is ambiguous, ask the user to choose a carrier.
 
 ## Required Inputs
 
-- Evri requires `--postcode`. Ask the user for the postcode if it is missing.
+- Evri can run rough public tracking without `--postcode`; use `--postcode` only when the user wants fuller address-specific detail or provides it.
 - Royal Mail, UPS, FedEx, and DHL do not require postcode by default.
 - Do not infer a postcode from memory unless the user clearly asks you to use their usual address.
 
@@ -53,6 +54,7 @@ Use local watch state when the user asks to monitor a parcel:
 
 ```sh
 parcelcli watch add <tracking-number> --carrier evri --postcode <postcode> --label "<label>"
+parcelcli watch add <tracking-number> --carrier evri --label "<label>"
 parcelcli watch add <tracking-number> --carrier royalmail --label "<label>"
 parcelcli watch add <tracking-number> --carrier ups --label "<label>"
 parcelcli watch add <tracking-number> --carrier fedex --label "<label>"
