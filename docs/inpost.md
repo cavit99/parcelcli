@@ -18,6 +18,7 @@ It normalizes the response into the shared parcelcli result shape:
 
 - tracking events keyed by consignment number
 - latest event by timestamp where available
+- customer-facing tracking-card headline in `status_text`, with the raw carrier event kept in `last_event`
 - terminal/delivered/delayed flags
 
 The newer InPost UK website route `/tracking/api` is not used because it is protected by Cloudflare Turnstile. Browser automation can load the public page, but the tracking card is not a reliable headless data source.
@@ -25,7 +26,7 @@ The newer InPost UK website route `/tracking/api` is not used because it is prot
 ## Status Mapping
 
 - `PRD` / `Ready For Dispatch` -> `pre_advice`
-- `PSC` / `Parcel Stored by Customer` -> `accepted`
+- `PSC` / `Parcel Stored by Customer` -> `accepted`; `status_text` is the public tracking-card headline `Your parcel is about to hit the road`
 - sent/collected/courier/in-transit descriptions -> `in_transit`
 - `ready_to_pickup*` -> `ready_for_pickup`
 - `out_for_delivery*` -> `out_for_delivery`

@@ -2,7 +2,7 @@
 name: parcelcli
 description: Track parcels locally with parcelcli for Evri, Royal Mail, UPS, FedEx, DHL, and InPost. Use when the user asks to track a package, detect a carrier, check delivery status, watch a parcel, or summarize courier tracking without sending tracking data to third-party aggregators.
 homepage: https://github.com/cavit99/parcelcli
-metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.5","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
+metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.6","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
 ---
 
 # parcelcli

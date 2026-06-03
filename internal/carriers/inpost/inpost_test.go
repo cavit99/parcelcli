@@ -34,8 +34,14 @@ func TestResultFromJSONAccepted(t *testing.T) {
 	if res.Status != model.StatusAccepted || res.Delivered || res.Terminal {
 		t.Fatalf("status=%s delivered=%v terminal=%v", res.Status, res.Delivered, res.Terminal)
 	}
+	if res.StatusText != "Your parcel is about to hit the road" {
+		t.Fatalf("status_text=%q", res.StatusText)
+	}
 	if res.LastEvent == nil || res.LastEvent.RawCode != "PSC" || res.LastEvent.Text != "Parcel Stored by Customer" {
 		t.Fatalf("last_event=%#v", res.LastEvent)
+	}
+	if res.Raw["carrier_status_text"] != "Parcel Stored by Customer" {
+		t.Fatalf("raw=%#v", res.Raw)
 	}
 	if res.Raw["http_status"] != 200 {
 		t.Fatalf("raw=%#v", res.Raw)

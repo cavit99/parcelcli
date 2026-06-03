@@ -90,12 +90,16 @@ func resultFromJSON(number, sourceURL string, httpStatus int, body []byte) (*mod
 
 	events := eventsFromDetails(tr.Events)
 	last := latestEvent(events)
-	statusText := ""
-	if last != nil && statusText == "" {
-		statusText = last.Text
+	carrierStatusText := ""
+	if last != nil {
+		carrierStatusText = last.Text
 	}
-	status, delivered, delayed := classify(eventCodes(events) + "\n" + statusText)
+	status, delivered, delayed := classify(eventCodes(events) + "\n" + carrierStatusText)
+	statusText := customerStatusText(status, last, carrierStatusText)
 	raw := map[string]any{"http_status": httpStatus}
+	if carrierStatusText != "" && carrierStatusText != statusText {
+		raw["carrier_status_text"] = carrierStatusText
+	}
 	return &model.Result{
 		Carrier:        "inpost",
 		TrackingNumber: number,
@@ -109,6 +113,33 @@ func resultFromJSON(number, sourceURL string, httpStatus int, body []byte) (*mod
 		Source:         source(sourceURL),
 		Raw:            raw,
 	}, nil
+}
+
+func customerStatusText(status model.Status, last *model.Event, fallback string) string {
+	if last != nil {
+		code := strings.ToLower(strings.TrimSpace(last.RawCode))
+		text := strings.ToLower(strings.TrimSpace(last.Text))
+		if code == "psc" || strings.Contains(text, "stored by customer") {
+			return "Your parcel is about to hit the road"
+		}
+	}
+	switch status {
+	case model.StatusReadyForPickup:
+		return "Ready for collection"
+	case model.StatusOutForDelivery:
+		return "Out for delivery"
+	case model.StatusDelivered:
+		return "Delivered"
+	case model.StatusDelayed:
+		return "Delayed"
+	case model.StatusReturned:
+		return "Returned to sender"
+	case model.StatusDeliveryAttempted:
+		return "Delivery attempted"
+	case model.StatusException:
+		return "Delivery issue"
+	}
+	return fallback
 }
 
 func parseTrackingResponse(number string, body []byte) (trackingResponse, error) {
