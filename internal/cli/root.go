@@ -81,7 +81,7 @@ func doctorCmd() *cobra.Command {
 			chrome = "auto"
 		}
 		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}, "optional": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "ups": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "fedex": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "dhl": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "inpost": map[string]any{"method": "api", "requires": []string{}}}, "watch_state": watch.Path()}
-		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, FedEx, and DHL use headless Chrome; InPost uses the public ShipX tracking API; Evri accepts optional --postcode for fuller detail.")
+		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, FedEx, and DHL use headless Chrome; InPost uses the public InPost UK tracking API; Evri accepts optional --postcode for fuller detail.")
 	}}
 }
 

@@ -15,29 +15,20 @@ import (
 	"github.com/cavit99/parcelcli/internal/model"
 )
 
-const baseURL = "https://api-shipx-pl.easypack24.net/v1/tracking/"
+const baseURL = "https://tracking.inpost.co.uk/api/v2.0/"
 
 type Tracker struct{}
 
 type trackingResponse struct {
-	TrackingNumber      string           `json:"tracking_number"`
-	TrackingNumberCamel string           `json:"trackingNumber"`
-	Service             string           `json:"service"`
-	Type                string           `json:"type"`
-	Status              string           `json:"status"`
-	StatusDescription   string           `json:"status_description"`
-	Message             string           `json:"message"`
-	TrackingDetails     []trackingDetail `json:"tracking_details"`
-	CustomAttributes    map[string]any   `json:"custom_attributes"`
+	Events []trackingEvent
+	Error  string
 }
 
-type trackingDetail struct {
-	Status       string `json:"status"`
-	OriginStatus string `json:"origin_status"`
-	Agency       string `json:"agency"`
-	DateTime     string `json:"datetime"`
-	Details      string `json:"details"`
-	Location     string `json:"location"`
+type trackingEvent struct {
+	Time        string `json:"ts"`
+	Code        string `json:"code"`
+	Description string `json:"description"`
+	Remark      string `json:"remark"`
 }
 
 func (Tracker) Track(ctx context.Context, req model.TrackRequest) (*model.Result, error) {
@@ -75,12 +66,12 @@ func (Tracker) Track(ctx context.Context, req model.TrackRequest) (*model.Result
 }
 
 func resultFromJSON(number, sourceURL string, httpStatus int, body []byte) (*model.Result, error) {
-	var tr trackingResponse
-	if err := json.Unmarshal(body, &tr); err != nil {
+	tr, err := parseTrackingResponse(number, body)
+	if err != nil {
 		return nil, fmt.Errorf("inpost tracking returned invalid JSON: %w", err)
 	}
 	if isNotFound(httpStatus, tr) {
-		message := firstNonEmpty(tr.Message, fmt.Sprintf("Tracking information about %s shipment has not been found.", number))
+		message := firstNonEmpty(tr.Error, fmt.Sprintf("No events found for consignment %s", number))
 		return &model.Result{
 			Carrier:        "inpost",
 			TrackingNumber: number,
@@ -97,27 +88,17 @@ func resultFromJSON(number, sourceURL string, httpStatus int, body []byte) (*mod
 		return nil, fmt.Errorf("inpost tracking returned HTTP %d", httpStatus)
 	}
 
-	apiNumber := firstNonEmpty(tr.TrackingNumber, tr.TrackingNumberCamel, number)
-	statusText := firstNonEmpty(tr.StatusDescription, humanStatus(tr.Status))
-	events := eventsFromDetails(tr.TrackingDetails)
+	events := eventsFromDetails(tr.Events)
 	last := latestEvent(events)
+	statusText := ""
 	if last != nil && statusText == "" {
 		statusText = last.Text
 	}
-	status, delivered, delayed := classify(tr.Status + "\n" + eventCodes(events) + "\n" + statusText)
+	status, delivered, delayed := classify(eventCodes(events) + "\n" + statusText)
 	raw := map[string]any{"http_status": httpStatus}
-	if tr.Service != "" {
-		raw["service"] = tr.Service
-	}
-	if tr.Type != "" {
-		raw["type"] = tr.Type
-	}
-	if len(tr.CustomAttributes) > 0 {
-		raw["custom_attributes"] = tr.CustomAttributes
-	}
 	return &model.Result{
 		Carrier:        "inpost",
-		TrackingNumber: apiNumber,
+		TrackingNumber: number,
 		Status:         status,
 		StatusText:     statusText,
 		Terminal:       delivered || status == model.StatusReturned || status == model.StatusException,
@@ -130,24 +111,58 @@ func resultFromJSON(number, sourceURL string, httpStatus int, body []byte) (*mod
 	}, nil
 }
 
+func parseTrackingResponse(number string, body []byte) (trackingResponse, error) {
+	var wrapped map[string]json.RawMessage
+	if err := json.Unmarshal(body, &wrapped); err != nil {
+		return trackingResponse{}, err
+	}
+	raw, ok := wrapped[number]
+	if !ok {
+		for k, v := range wrapped {
+			if strings.EqualFold(k, number) {
+				raw = v
+				ok = true
+				break
+			}
+		}
+	}
+	if !ok {
+		return trackingResponse{Error: "No tracking data returned for consignment " + number}, nil
+	}
+	var events []trackingEvent
+	if err := json.Unmarshal(raw, &events); err == nil {
+		return trackingResponse{Events: events}, nil
+	}
+	var errObj struct {
+		Error string `json:"error"`
+	}
+	if err := json.Unmarshal(raw, &errObj); err != nil {
+		return trackingResponse{}, err
+	}
+	return trackingResponse{Error: errObj.Error}, nil
+}
+
 func isNotFound(httpStatus int, tr trackingResponse) bool {
 	if httpStatus == http.StatusNotFound {
 		return true
 	}
-	l := strings.ToLower(tr.Message)
-	return strings.Contains(l, "not been found") || strings.Contains(l, "not found")
+	if len(tr.Events) == 0 {
+		return true
+	}
+	l := strings.ToLower(tr.Error)
+	return strings.Contains(l, "no events found") || strings.Contains(l, "not found")
 }
 
-func eventsFromDetails(details []trackingDetail) []model.Event {
+func eventsFromDetails(details []trackingEvent) []model.Event {
 	var out []model.Event
 	for _, d := range details {
-		text := firstNonEmpty(d.Details, humanStatus(d.Status), humanStatus(d.OriginStatus))
-		location := firstNonEmpty(d.Location, d.Agency)
-		rawCode := firstNonEmpty(d.OriginStatus, d.Status)
-		if text == "" && d.DateTime == "" && location == "" && rawCode == "" {
+		text := firstNonEmpty(d.Description, d.Remark, humanStatus(d.Code))
+		location := ""
+		rawCode := d.Code
+		if text == "" && d.Time == "" && location == "" && rawCode == "" {
 			continue
 		}
-		out = append(out, model.Event{Time: d.DateTime, Text: text, Location: location, RawCode: rawCode})
+		out = append(out, model.Event{Time: d.Time, Text: text, Location: location, RawCode: rawCode})
 	}
 	return out
 }
@@ -169,7 +184,7 @@ func latestEvent(events []model.Event) *model.Event {
 }
 
 func parseTime(s string) time.Time {
-	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05.000-07:00", "2006-01-02T15:04:05-07:00"} {
+	for _, layout := range []string{time.RFC3339Nano, time.RFC3339, "2006-01-02T15:04:05.000-07:00", "2006-01-02T15:04:05-07:00", "02/01/2006 15:04:05"} {
 		if t, err := time.Parse(layout, s); err == nil {
 			return t
 		}
@@ -195,7 +210,9 @@ func classify(s string) (model.Status, bool, bool) {
 		return model.StatusOutForDelivery, false, delayed
 	case delayed:
 		return model.StatusDelayed, false, true
-	case strings.Contains(l, "confirmed") || strings.Contains(l, "created") || strings.Contains(l, "offer_"):
+	case strings.Contains(l, "stored by customer") || strings.Contains(l, "psc"):
+		return model.StatusAccepted, false, delayed
+	case strings.Contains(l, "ready for dispatch") || strings.Contains(l, "prd") || strings.Contains(l, "confirmed") || strings.Contains(l, "created") || strings.Contains(l, "offer_"):
 		return model.StatusPreAdvice, false, delayed
 	case strings.Contains(l, "dispatched") || strings.Contains(l, "collected") || strings.Contains(l, "taken_by_courier") || strings.Contains(l, "adopted") || strings.Contains(l, "sent_from") || strings.Contains(l, "in transit") || strings.Contains(l, "redirect_to_box") || strings.Contains(l, "readdressed"):
 		return model.StatusInTransit, false, delayed
@@ -212,6 +229,8 @@ func humanStatus(s string) string {
 		return ""
 	}
 	known := map[string]string{
+		"prd":                                  "Ready For Dispatch",
+		"psc":                                  "Parcel Stored by Customer",
 		"created":                              "Shipment created",
 		"confirmed":                            "Prepared by sender",
 		"dispatched_by_sender":                 "Dispatched by sender",

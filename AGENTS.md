@@ -34,7 +34,7 @@ parcelcli track <tracking-number> --carrier inpost --json
 - `ups` — headless Chrome / CDP against the public UPS tracking page. No postcode by default.
 - `fedex` — headless Chrome / CDP against the public FedEx tracking page. No postcode by default.
 - `dhl` — headless Chrome / CDP against the public DHL tracking page. No postcode by default.
-- `inpost` — public ShipX tracking API. No postcode or browser required. The InPost UK website tracking endpoint is protected by Cloudflare Turnstile and is not used.
+- `inpost` — public InPost UK tracking API at `tracking.inpost.co.uk/api/v2.0`. No postcode or browser required. The newer InPost UK website tracking endpoint is protected by Cloudflare Turnstile and is not used.
 
 ## Platform notes
 

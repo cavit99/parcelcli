@@ -7,8 +7,8 @@ import (
 )
 
 func TestResultFromJSONNotFound(t *testing.T) {
-	body := []byte(`{"trackingNumber":"JJD0002219933896965","message":"Tracking information about JJD0002219933896965 shipment has not been found."}`)
-	res, err := resultFromJSON("JJD0002219933896965", baseURL+"JJD0002219933896965", 404, body)
+	body := []byte(`{"JJD0002219933896965":{"error":"No events found for consignment JJD0002219933896965"}}`)
+	res, err := resultFromJSON("JJD0002219933896965", baseURL+"JJD0002219933896965", 200, body)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -20,15 +20,33 @@ func TestResultFromJSONNotFound(t *testing.T) {
 	}
 }
 
+func TestResultFromJSONAccepted(t *testing.T) {
+	body := []byte(`{
+		"JJD0002219933896965": [
+			{"ts":"02\/06\/2026 14:56:21","code":"PRD","description":"Ready For Dispatch","remark":""},
+			{"ts":"03\/06\/2026 09:00:42","code":"PSC","description":"Parcel Stored by Customer","remark":""}
+		]
+	}`)
+	res, err := resultFromJSON("JJD0002219933896965", baseURL+"JJD0002219933896965", 200, body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.Status != model.StatusAccepted || res.Delivered || res.Terminal {
+		t.Fatalf("status=%s delivered=%v terminal=%v", res.Status, res.Delivered, res.Terminal)
+	}
+	if res.LastEvent == nil || res.LastEvent.RawCode != "PSC" || res.LastEvent.Text != "Parcel Stored by Customer" {
+		t.Fatalf("last_event=%#v", res.LastEvent)
+	}
+	if res.Raw["http_status"] != 200 {
+		t.Fatalf("raw=%#v", res.Raw)
+	}
+}
+
 func TestResultFromJSONDelivered(t *testing.T) {
 	body := []byte(`{
-		"tracking_number": "JJD0000000000000000",
-		"service": "inpost_locker_standard",
-		"type": "inpost_locker_standard",
-		"status": "delivered",
-		"tracking_details": [
-			{"status":"confirmed","origin_status":"confirmed","agency":"InPost","datetime":"2026-06-01T10:00:00.000+01:00"},
-			{"status":"delivered","origin_status":"delivered","agency":"InPost","datetime":"2026-06-02T12:30:00.000+01:00","location":"London"}
+		"JJD0000000000000000": [
+			{"ts":"01\/06\/2026 10:00:00","code":"PSC","description":"Parcel Stored by Customer","remark":""},
+			{"ts":"02\/06\/2026 12:30:00","code":"EOL.1001","description":"Delivered","remark":""}
 		]
 	}`)
 	res, err := resultFromJSON("JJD0000000000000000", baseURL+"JJD0000000000000000", 200, body)
@@ -38,11 +56,8 @@ func TestResultFromJSONDelivered(t *testing.T) {
 	if res.Status != model.StatusDelivered || !res.Delivered || !res.Terminal {
 		t.Fatalf("status=%s delivered=%v terminal=%v", res.Status, res.Delivered, res.Terminal)
 	}
-	if res.LastEvent == nil || res.LastEvent.RawCode != "delivered" || res.LastEvent.Location != "London" {
+	if res.LastEvent == nil || res.LastEvent.RawCode != "EOL.1001" {
 		t.Fatalf("last_event=%#v", res.LastEvent)
-	}
-	if res.Raw["service"] != "inpost_locker_standard" {
-		t.Fatalf("raw=%#v", res.Raw)
 	}
 }
 
@@ -58,6 +73,7 @@ func TestClassifyInPostStatuses(t *testing.T) {
 		{"delay_in_delivery", model.StatusDelayed, false, true},
 		{"returned_to_sender", model.StatusReturned, false, false},
 		{"undelivered_wrong_address", model.StatusDeliveryAttempted, false, false},
+		{"PRD\nPSC\nParcel Stored by Customer", model.StatusAccepted, false, false},
 	}
 	for _, tt := range tests {
 		status, delivered, delayed := classify(tt.input)

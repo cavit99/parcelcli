@@ -39,7 +39,7 @@ make install
 Requirements:
 
 - Go 1.26+ when building from source or using `go install`.
-- A Chrome-compatible browser for tracking: Google Chrome on macOS (`/Applications/Google Chrome.app/...` by default), or `google-chrome`, `chromium`, or `chromium-browser` on Linux.
+- A Chrome-compatible browser for browser-backed carriers: Google Chrome on macOS (`/Applications/Google Chrome.app/...` by default), or `google-chrome`, `chromium`, or `chromium-browser` on Linux. InPost does not require Chrome.
 
 `parcelcli` runs Chrome through CDP in headless mode, so Linux servers do not normally need X11/a desktop session. Minimal containers may still need Chrome/Chromium plus common shared libraries, fonts, and CA certificates.
 
@@ -150,7 +150,7 @@ Reports carrier readiness and where watch state lives. Run this first on new Lin
 | UPS | `ups` | Public page via Chrome/CDP | none by default |
 | FedEx | `fedex` | Public page via Chrome/CDP | none by default |
 | DHL | `dhl` | Public page via Chrome/CDP | none by default |
-| InPost | `inpost` | Public ShipX tracking API | none by default |
+| InPost | `inpost` | Public InPost UK tracking API | none by default |
 
 Carrier notes:
 

@@ -2,7 +2,7 @@
 name: parcelcli
 description: Track parcels locally with parcelcli for Evri, Royal Mail, UPS, FedEx, DHL, and InPost. Use when the user asks to track a package, detect a carrier, check delivery status, watch a parcel, or summarize courier tracking without sending tracking data to third-party aggregators.
 homepage: https://github.com/cavit99/parcelcli
-metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.4","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
+metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.5","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
 ---
 
 # parcelcli
@@ -35,7 +35,7 @@ If detection is ambiguous, ask the user to choose a carrier.
 
 - Evri can run rough public tracking without `--postcode`; use `--postcode` only when the user wants fuller address-specific detail or provides it.
 - Royal Mail, UPS, FedEx, DHL, and InPost do not require postcode by default.
-- InPost uses the public ShipX tracking API; do not use the InPost UK browser endpoint because it is protected by Cloudflare Turnstile.
+- InPost uses the public InPost UK tracking API at `tracking.inpost.co.uk/api/v2.0`; do not use the newer InPost UK browser endpoint because it is protected by Cloudflare Turnstile.
 - Do not infer a postcode from memory unless the user clearly asks you to use their usual address.
 
 ## Output Handling
