@@ -1,13 +1,13 @@
 ---
 name: parcelcli
-description: Track parcels locally with parcelcli for Evri, Royal Mail, UPS, FedEx, and DHL. Use when the user asks to track a package, detect a carrier, check delivery status, watch a parcel, or summarize courier tracking without sending tracking data to third-party aggregators.
+description: Track parcels locally with parcelcli for Evri, Royal Mail, UPS, FedEx, DHL, and InPost. Use when the user asks to track a package, detect a carrier, check delivery status, watch a parcel, or summarize courier tracking without sending tracking data to third-party aggregators.
 homepage: https://github.com/cavit99/parcelcli
-metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.3","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
+metadata: {"openclaw":{"requires":{"bins":["parcelcli"]},"homepage":"https://github.com/cavit99/parcelcli","install":[{"id":"go","kind":"go","module":"github.com/cavit99/parcelcli/cmd/parcelcli@v1.0.4","bins":["parcelcli"],"label":"Install parcelcli (go)"}]}}
 ---
 
 # parcelcli
 
-Use `parcelcli` for local parcel tracking. It drives public carrier tracking pages and returns a normalized JSON shape.
+Use `parcelcli` for local parcel tracking. It drives public carrier tracking pages or APIs and returns a normalized JSON shape.
 
 ## Golden Path
 
@@ -20,6 +20,7 @@ parcelcli track <tracking-number> --carrier royalmail --json
 parcelcli track <tracking-number> --carrier ups --json
 parcelcli track <tracking-number> --carrier fedex --json
 parcelcli track <tracking-number> --carrier dhl --json
+parcelcli track <tracking-number> --carrier inpost --json
 ```
 
 If the carrier is unknown, run:
@@ -33,7 +34,8 @@ If detection is ambiguous, ask the user to choose a carrier.
 ## Required Inputs
 
 - Evri can run rough public tracking without `--postcode`; use `--postcode` only when the user wants fuller address-specific detail or provides it.
-- Royal Mail, UPS, FedEx, and DHL do not require postcode by default.
+- Royal Mail, UPS, FedEx, DHL, and InPost do not require postcode by default.
+- InPost uses the public ShipX tracking API; do not use the InPost UK browser endpoint because it is protected by Cloudflare Turnstile.
 - Do not infer a postcode from memory unless the user clearly asks you to use their usual address.
 
 ## Output Handling
@@ -59,6 +61,7 @@ parcelcli watch add <tracking-number> --carrier royalmail --label "<label>"
 parcelcli watch add <tracking-number> --carrier ups --label "<label>"
 parcelcli watch add <tracking-number> --carrier fedex --label "<label>"
 parcelcli watch add <tracking-number> --carrier dhl --label "<label>"
+parcelcli watch add <tracking-number> --carrier inpost --label "<label>"
 parcelcli watch run --json
 ```
 

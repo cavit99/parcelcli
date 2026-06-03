@@ -2,7 +2,7 @@
 
 A small Go CLI for personal/private parcel tracking from the terminal, built for local assistants, shell scripts, and agent workflows.
 
-`parcelcli` drives carrier public tracking flows and returns one stable JSON shape. Current browser-backed carriers: **Evri**, **Royal Mail**, **UPS**, **FedEx**, and **DHL**.
+`parcelcli` drives carrier public tracking flows and returns one stable JSON shape. Current carriers: **Evri**, **Royal Mail**, **UPS**, **FedEx**, **DHL**, and **InPost**.
 
 > Unofficial and unaffiliated. This project is not affiliated with, endorsed by, sponsored by, or connected to any carrier. Carrier names are used descriptively only.
 
@@ -52,6 +52,7 @@ parcelcli track TRACKING_NUMBER --carrier royalmail --json
 parcelcli track TRACKING_NUMBER --carrier ups --json
 parcelcli track TRACKING_NUMBER --carrier fedex --json
 parcelcli track TRACKING_NUMBER --carrier dhl --json
+parcelcli track TRACKING_NUMBER --carrier inpost --json
 ```
 
 Example JSON shape:
@@ -89,12 +90,13 @@ parcelcli track TRACKING_NUMBER --carrier royalmail [--json]
 parcelcli track TRACKING_NUMBER --carrier ups [--json]
 parcelcli track TRACKING_NUMBER --carrier fedex [--json]
 parcelcli track TRACKING_NUMBER --carrier dhl [--json]
+parcelcli track TRACKING_NUMBER --carrier inpost [--json]
 ```
 
 Flags:
 
-- `--carrier evri|royalmail|ups|fedex|dhl` — carrier slug.
-- `--postcode` — optional for Evri fuller/detail tracking; not required for Royal Mail, UPS, FedEx, or DHL by default.
+- `--carrier evri|royalmail|ups|fedex|dhl|inpost` — carrier slug.
+- `--postcode` — optional for Evri fuller/detail tracking; not required for Royal Mail, UPS, FedEx, DHL, or InPost by default.
 - `--timeout 35s` — browser wait budget.
 - `--chrome PATH` — override Chrome path.
 - `--json` — stable JSON for agents/scripts.
@@ -118,6 +120,7 @@ parcelcli watch add TRACKING_NUMBER --carrier royalmail --label "letter"
 parcelcli watch add TRACKING_NUMBER --carrier ups --label "UPS parcel"
 parcelcli watch add TRACKING_NUMBER --carrier fedex --label "FedEx parcel"
 parcelcli watch add TRACKING_NUMBER --carrier dhl --label "DHL parcel"
+parcelcli watch add TRACKING_NUMBER --carrier inpost --label "InPost parcel"
 parcelcli watch list --json
 parcelcli watch run --json
 parcelcli watch remove ID
@@ -147,6 +150,7 @@ Reports carrier readiness and where watch state lives. Run this first on new Lin
 | UPS | `ups` | Public page via Chrome/CDP | none by default |
 | FedEx | `fedex` | Public page via Chrome/CDP | none by default |
 | DHL | `dhl` | Public page via Chrome/CDP | none by default |
+| InPost | `inpost` | Public ShipX tracking API | none by default |
 
 Carrier notes:
 
@@ -155,6 +159,7 @@ Carrier notes:
 - [`docs/ups.md`](docs/ups.md)
 - [`docs/fedex.md`](docs/fedex.md)
 - [`docs/dhl.md`](docs/dhl.md)
+- [`docs/inpost.md`](docs/inpost.md)
 
 ## Agent contract
 

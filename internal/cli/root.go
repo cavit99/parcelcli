@@ -12,6 +12,7 @@ import (
 	"github.com/cavit99/parcelcli/internal/carriers/dhl"
 	"github.com/cavit99/parcelcli/internal/carriers/evri"
 	"github.com/cavit99/parcelcli/internal/carriers/fedex"
+	"github.com/cavit99/parcelcli/internal/carriers/inpost"
 	"github.com/cavit99/parcelcli/internal/carriers/royalmail"
 	"github.com/cavit99/parcelcli/internal/carriers/ups"
 	"github.com/cavit99/parcelcli/internal/model"
@@ -45,7 +46,7 @@ func trackCmd() *cobra.Command {
 		}
 		return printResult(res)
 	}}
-	cmd.Flags().StringVar(&carrier, "carrier", "evri", "carrier slug (currently: evri, royalmail, ups, fedex, dhl)")
+	cmd.Flags().StringVar(&carrier, "carrier", "evri", "carrier slug (currently: evri, royalmail, ups, fedex, dhl, inpost)")
 	cmd.Flags().StringVar(&postcode, "postcode", "", "destination postcode when required")
 	return cmd
 }
@@ -66,6 +67,9 @@ func detectCmd() *cobra.Command {
 		if looksDHL(number) {
 			candidates = append([]map[string]any{{"carrier": "dhl", "confidence": "likely", "requires": []string{}}}, candidates...)
 		}
+		if looksInPost(number) {
+			candidates = append([]map[string]any{{"carrier": "inpost", "confidence": "likely", "requires": []string{}}}, candidates...)
+		}
 		out := map[string]any{"tracking_number": args[0], "candidates": candidates}
 		return printJSONOrText(out, fmt.Sprintf("Possible carriers: %s", carrierNames(candidates)))
 	}}
@@ -76,8 +80,8 @@ func doctorCmd() *cobra.Command {
 		if chrome == "" {
 			chrome = "auto"
 		}
-		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}, "optional": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "ups": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "fedex": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "dhl": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}}, "watch_state": watch.Path()}
-		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, FedEx, and DHL use headless Chrome; Evri accepts optional --postcode for fuller detail.")
+		out := map[string]any{"ready": true, "carriers": map[string]any{"evri": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}, "optional": []string{"postcode"}}, "royalmail": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "ups": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "fedex": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "dhl": map[string]any{"method": "browser", "chrome": chrome, "requires": []string{}}, "inpost": map[string]any{"method": "api", "requires": []string{}}}, "watch_state": watch.Path()}
+		return printJSONOrText(out, "parcelcli is ready. Evri, Royal Mail, UPS, FedEx, and DHL use headless Chrome; InPost uses the public ShipX tracking API; Evri accepts optional --postcode for fuller detail.")
 	}}
 }
 
@@ -185,12 +189,15 @@ var trackers = map[string]tracker{
 	"fed-ex":     fedex.Tracker{},
 	"fdx":        fedex.Tracker{},
 	"dhl":        dhl.Tracker{},
+	"inpost":     inpost.Tracker{},
+	"in-post":    inpost.Tracker{},
 }
 
 func runTrack(ctx context.Context, c, number, pc string) (*model.Result, error) {
+	c = strings.ToLower(strings.TrimSpace(c))
 	tr, ok := trackers[c]
 	if !ok {
-		return nil, fmt.Errorf("unsupported carrier %q (currently implemented: evri, royalmail, ups, fedex, dhl)", c)
+		return nil, fmt.Errorf("unsupported carrier %q (currently implemented: evri, royalmail, ups, fedex, dhl, inpost)", c)
 	}
 	return tr.Track(ctx, model.TrackRequest{TrackingNumber: number, Postcode: pc, ChromePath: chromePath, Timeout: timeout, Debug: debug})
 }
@@ -281,4 +288,19 @@ func looksDHL(number string) bool {
 		}
 	}
 	return strings.Contains(number, "DHL")
+}
+
+func looksInPost(number string) bool {
+	if len(number) < 8 || len(number) > 32 {
+		return false
+	}
+	if !(strings.HasPrefix(number, "JJD") || strings.HasPrefix(number, "MTL")) {
+		return false
+	}
+	for _, r := range number {
+		if !((r >= '0' && r <= '9') || (r >= 'A' && r <= 'Z')) {
+			return false
+		}
+	}
+	return true
 }
