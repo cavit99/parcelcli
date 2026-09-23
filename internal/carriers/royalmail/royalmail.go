@@ -190,10 +190,7 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 	mu.Lock()
 	out := append([]apiObservation(nil), observations...)
 	mu.Unlock()
-	if strings.TrimSpace(body) == "" {
-		return body, out, fmt.Errorf("royalmail page did not render tracking text before timeout")
-	}
-	return body, out, nil
+	return body, out, fmt.Errorf("royalmail page did not render a tracking result before timeout")
 }
 
 func isAPIURL(u string) bool {
