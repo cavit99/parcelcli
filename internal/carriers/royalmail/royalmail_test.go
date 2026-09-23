@@ -12,3 +12,21 @@ func TestRoyalMailClassifyDelivered(t *testing.T) {
 		t.Fatalf("status=%s delivered=%v delayed=%v", status, delivered, delayed)
 	}
 }
+
+func TestRoyalMailSummaryIgnoresHelpAndHistory(t *testing.T) {
+	piece := mailPiece{
+		Summary: &summary{
+			StatusDescription: "We've got it",
+			StatusHelpText:    "My item is shown as delivered but it hasn't been",
+			LastEventCode:     "EVIMC",
+		},
+		Events: []event{
+			{EventName: "We have your item"},
+			{EventName: "Your item was delivered"},
+		},
+	}
+	res := normalizePiece("TRACKING_NUMBER", piece, nil)
+	if res.Status != model.StatusInTransit || res.Delivered || res.Terminal {
+		t.Fatalf("status=%s delivered=%v terminal=%v", res.Status, res.Delivered, res.Terminal)
+	}
+}

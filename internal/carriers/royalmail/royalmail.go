@@ -178,8 +178,7 @@ func fetch(ctx context.Context, chromePath, number string, timeout time.Duration
 		if err := chromedp.Run(runCtx, chromedp.Text("body", &body, chromedp.ByQuery)); err != nil {
 			return "", nil, err
 		}
-		lower := strings.ToLower(body)
-		if hasResultText(lower, number) || hasSummaryObservation(observations) {
+		if hasResultText(body, number) || hasSummaryObservation(observations) {
 			chromedp.Run(runCtx, chromedp.Sleep(1*time.Second))
 			mu.Lock()
 			out := append([]apiObservation(nil), observations...)
@@ -211,8 +210,8 @@ func hasSummaryObservation(obs []apiObservation) bool {
 	return false
 }
 
-func hasResultText(lower, number string) bool {
-	return strings.Contains(lower, strings.ToLower(number)) || strings.Contains(lower, "unable to confirm") || strings.Contains(lower, "don't recognise") || strings.Contains(lower, "not recognise") || strings.Contains(lower, "we've got it") || strings.Contains(lower, "we have your item") || strings.Contains(lower, "your item was delivered") || strings.Contains(lower, "we've delivered") || strings.Contains(lower, "out for delivery") || strings.Contains(lower, "ready for delivery") || strings.Contains(lower, "in transit")
+func hasResultText(body, number string) bool {
+	return extractRenderedStatus(body, number) != ""
 }
 
 func resultFromJSON(number, body string, observations []apiObservation) (*model.Result, bool) {
@@ -282,7 +281,7 @@ func normalizePiece(number string, p mailPiece, observations []apiObservation) *
 
 func resultFromRendered(number, body string, observations []apiObservation) *model.Result {
 	statusText := extractRenderedStatus(body, number)
-	status, delivered, delayed := classify(statusText+"\n"+body, "")
+	status, delivered, delayed := classify(statusText, "")
 	return &model.Result{
 		Carrier: "royalmail", TrackingNumber: number, Status: status, StatusText: statusText,
 		Terminal: delivered || status == model.StatusReturned, Delivered: delivered, Delayed: delayed,
@@ -292,13 +291,15 @@ func resultFromRendered(number, body string, observations []apiObservation) *mod
 }
 
 func extractRenderedStatus(body, number string) string {
+	hasNumber := strings.Contains(strings.ToUpper(body), strings.ToUpper(number))
 	lines := textutil.CleanLines(body)
 	for _, l := range lines {
 		ll := strings.ToLower(l)
-		if strings.Contains(l, number) && (strings.Contains(ll, "sorry") || strings.Contains(ll, "delivered") || strings.Contains(ll, "status")) {
-			return l
+		if ll == "need help?" {
+			break
 		}
-		if strings.Contains(ll, "sorry - we don't recognise") || strings.Contains(ll, "unable to confirm") || strings.Contains(ll, "your item was delivered") || strings.Contains(ll, "we've delivered") || strings.Contains(ll, "we've got it") || strings.Contains(ll, "we have your item") || strings.Contains(ll, "in transit") || strings.Contains(ll, "out for delivery") || strings.Contains(ll, "ready for delivery") {
+		status, _, _ := classify(l, "")
+		if status != model.StatusUnknown && (hasNumber || status == model.StatusException || status == model.StatusNotFound) {
 			return l
 		}
 	}
@@ -308,13 +309,13 @@ func extractRenderedStatus(body, number string) string {
 func pieceText(p mailPiece) string {
 	var parts []string
 	if p.Summary != nil {
-		parts = append(parts, p.Summary.StatusCategory, p.Summary.StatusDescription, p.Summary.StatusHelpText, p.Summary.SummaryLine, p.Summary.LastEventName)
+		parts = append(parts, p.Summary.StatusCategory, p.Summary.StatusDescription, p.Summary.SummaryLine, p.Summary.LastEventName)
 	}
 	if p.Error != nil {
 		parts = append(parts, p.Error.ErrorCode, p.Error.ErrorCause, p.Error.ErrorDescription, p.Error.ErrorResolution)
 	}
-	for _, e := range p.Events {
-		parts = append(parts, e.EventCode, e.EventName)
+	if len(p.Events) > 0 {
+		parts = append(parts, p.Events[0].EventCode, p.Events[0].EventName)
 	}
 	return strings.Join(parts, "\n")
 }
@@ -344,7 +345,7 @@ func classify(text, code string) (model.Status, bool, bool) {
 		return model.StatusDeliveryAttempted, false, delayed
 	case c == "EVGPD" || strings.Contains(l, "out for delivery") || strings.Contains(l, "ready for delivery") || strings.Contains(l, "deliver it today"):
 		return model.StatusOutForDelivery, false, delayed
-	case containsCode(c, "EVNSR", "EVODO", "EVORI", "EVOAC", "EVAIE", "EVAIP", "EVPPA", "EVDAV", "EVIMC", "EVDAC", "EVNRT", "EVOCO", "RSRXS", "RORXS", "EVNDA", "EVBAV", "EVKLS", "EVIAV") || strings.Contains(l, "in transit"):
+	case containsCode(c, "EVNSR", "EVODO", "EVORI", "EVOAC", "EVAIE", "EVAIP", "EVPPA", "EVDAV", "EVIMC", "EVDAC", "EVNRT", "EVOCO", "RSRXS", "RORXS", "EVNDA", "EVBAV", "EVKLS", "EVIAV") || strings.Contains(l, "in transit") || strings.Contains(l, "we've got it") || strings.Contains(l, "we have your item"):
 		return model.StatusInTransit, false, delayed
 	case strings.Contains(l, "returned to sender"):
 		return model.StatusReturned, false, delayed
